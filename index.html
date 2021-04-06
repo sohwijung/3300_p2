@@ -33,13 +33,13 @@
 
         const requestData = async function() {
             const us = await d3.json("../data/us-smaller.json");
-            const usa = await d3.json("../data/us.json");
+            // const usa = await d3.json("../data/us.json");
 
             let selected_year = "2016";
         
             var states = topojson.feature(us, us.objects.states);
             var statesMesh = topojson.mesh(us, us.objects.states);
-            var usMesh = topojson.mesh(usa, usa.objects.counties);
+            // var usMesh = topojson.mesh(usa, usa.objects.counties);
             var projection = d3.geoAlbersUsa().fitSize([width, height], states);
             var path = d3.geoPath().projection(projection);
 
@@ -55,11 +55,7 @@
                 .attr("stroke", "white")
                 .attr("d", path);
             
-            svg.append("path").datum(usMesh)
-                .attr("class","outline")
-                .attr("stroke-width", 1)
-                .attr("stroke", "black")
-                .attr("d", path);
+
             
             const listings = await d3.json("../data/listings.json");
             var stateIDs = await d3.tsv("../data/us-state-names.tsv");
@@ -121,9 +117,10 @@
 
             console.log(listing_data);
 
+            // How to choose colors ?
             const colorScale = d3.scaleQuantile()
                          .domain(minMax)
-                         .range(["#f0f9e8","#bae4bc","#7bccc4","#43a2ca","#0868ac"]);
+                         .range(["#bae4bc","#7bccc4","#43a2ca","#0868ac"]);
 
             svg.selectAll(".state")
                 .style("fill", d => colorScale( listing_data[selected_year][ idToState[d.id] ][0] ));
