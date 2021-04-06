@@ -3,10 +3,132 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/topojson.v2.min.js"></script>
+    <style>
+        .state {
+            fill: lightgrey;
+        }
+
+        .outline {
+            fill: none;
+        }
+    </style>
     <title>Project 2</title>
 </head>
 <body>
+    <svg id="us_map" height="600" width="900""></svg>
+    <select id="year-select" style="width: 260px;">
+        <!-- <option value="sortAsc" selected>Sort by person-per-electoral-vote</option>
+        <option value="sortAlpha">Sort alphabetically</option>
+        <option value="sortPop">Sort by population</option>
+        <option value="sortOut">Sort by outcome</option> -->
+    </select>
+
     <script>
+        const svg = d3.select("#us_map");
+        let width = svg.attr("width");
+        let height = svg.attr("height");
+
+
+        const requestData = async function() {
+            const us = await d3.json("../data/us-smaller.json");
+            const usa = await d3.json("../data/us.json");
+
+            let selected_year = "2016";
+        
+            var states = topojson.feature(us, us.objects.states);
+            var statesMesh = topojson.mesh(us, us.objects.states);
+            var usMesh = topojson.mesh(usa, usa.objects.counties);
+            var projection = d3.geoAlbersUsa().fitSize([width, height], states);
+            var path = d3.geoPath().projection(projection);
+
+            svg.selectAll("path.state").data(states.features)
+                .join("path")
+                .attr("class", "state")
+                .attr("note", d => d.id)
+                .attr("d", path);
+            
+            svg.append("path").datum(statesMesh)
+                .attr("class","outline")
+                .attr("stroke-width", 1)
+                .attr("stroke", "white")
+                .attr("d", path);
+            
+            svg.append("path").datum(usMesh)
+                .attr("class","outline")
+                .attr("stroke-width", 1)
+                .attr("stroke", "black")
+                .attr("d", path);
+            
+            const listings = await d3.json("../data/listings.json");
+            var stateIDs = await d3.tsv("../data/us-state-names.tsv");
+            let idToState = {}
+  
+            stateIDs.forEach( row => {
+                idToState[row.id] = row.code;
+            });
+
+            let listing_data = {}
+            listings.forEach( row => {
+                year = row["month_date_yyyymm"].toString().slice(0,4);
+                if (year in listing_data) {
+                    if (Object.keys(listing_data[year]).includes(row["state_id"])) {
+                        listing_data[year][row["state_id"].toUpperCase()][0] += row["median_listing_price_per_square_foot"];
+                        listing_data[year][row["state_id"].toUpperCase()][1] += (row["price_increased_count"]/row["total_listing_count"])*100;
+                        listing_data[year][row["state_id"].toUpperCase()][2] += (row["price_reduced_count"]/row["total_listing_count"])*100;
+                        listing_data[year][row["state_id"].toUpperCase()][3] += 1;
+                    }  else {
+                        listing_data[year][row["state_id"].toUpperCase()] = [row["median_listing_price_per_square_foot"], 
+                                                            (row["price_increased_count"]/row["total_listing_count"])*100,
+                                                            (row["price_reduced_count"]/row["total_listing_count"])*100, 1]
+                    }
+                } else {
+                    var state = new Object();
+                    state[row["state_id"].toUpperCase()] = [row["median_listing_price_per_square_foot"], 
+                                                            (row["price_increased_count"]/row["total_listing_count"])*100,
+                                                            (row["price_reduced_count"]/row["total_listing_count"])*100, 1]
+                    listing_data[year] = state;
+                }
+            })
+
+            Object.values(listing_data).forEach(year => {
+                for (const [key, value] of Object.entries(year)) {
+                    value[0]/=value[3];
+                    value[1]/=value[3];
+                    value[2]/=value[3];
+                }
+            })
+            
+            let filters = d3.select("#year-select");
+
+            Object.keys(listing_data).forEach( d => {
+                let element = document.getElementById("year-select")
+                let select = document.createElement("option");
+                select.value = d;
+                let node = document.createTextNode(d);
+                select.appendChild(node);
+                element.appendChild(select);
+            })
+
+            filters.on("change", function() {
+                selected_year = this.value;
+            })
+            console.log(selected_year);
+
+            const minMax = d3.extent(Object.values(listing_data[selected_year]), d => d[0]);
+            console.log(minMax);
+
+            console.log(listing_data);
+
+            const colorScale = d3.scaleQuantile()
+                         .domain(minMax)
+                         .range(["#f0f9e8","#bae4bc","#7bccc4","#43a2ca","#0868ac"]);
+
+            svg.selectAll(".state")
+                .style("fill", d => colorScale( listing_data[selected_year][ idToState[d.id] ][0] ));
+        }
+        requestData();
     </script>
 </body>
 </html>
