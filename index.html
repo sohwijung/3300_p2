@@ -26,15 +26,19 @@
             fill: none;
         }
 
-        #real-estate-heading {
+        .heading {
             text-align: center;
             padding: 10px;
             margin-top: 30px;
         }
 
-        #select {
+        .select {
             text-align: right;
             margin-right: 20em;
+        }
+
+        .state_graph {
+            margin-top: 80px;
         }
 
         .mouseover {
@@ -42,7 +46,7 @@
             pointer-events: none;
         }
 
-        #us_map_div {
+        #us_map_div, #state_map_div {
             text-align: center;
         }
 
@@ -58,8 +62,8 @@
 </head>
 <body>
     <div>
-        <h2 id = "real-estate-heading">Real Estate Trends</h2>
-        <div id="select">
+        <h2 class = "heading">Real Estate Trends</h2>
+        <div class="select">
             <select id="year-select" style="width: 260px;">
             </select>
         </div>
@@ -69,11 +73,15 @@
         <svg id="colorLegend" height="100" width="760" style="background: #fff; margin-top:30px" ></svg>
     </div>
 
-    <select id="state-select" style="width: 260px;">
-    </select>
-    <div id = "state_map_div">
-        
-        <svg id="state_map" height="700" width="1200"></svg>
+    <div class="state_graph">
+        <h2 class = "heading">State Real Estate Trend</h2>
+        <div class="select">
+            <select id="state-select" style="width: 260px;">
+            </select>
+        </div>
+        <div id = "state_map_div">
+            <svg id="state_map" height="700" width="1200"></svg>
+        </div>
     </div>
     
     <script>
