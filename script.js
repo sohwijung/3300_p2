@@ -167,7 +167,7 @@ const svg = d3.select("#us_map");
                 minMax = d3.extent(Object.values(listing_data[selected_year]), d => d[0]);
                 colorScale = d3.scaleQuantile()
                          .domain(minMax)
-                         .range([ "#f7b267","#ff8a5b","#f25c54","#dd403a"]);
+                         .range([ "#f7b267", "#ff8a5b", "#f25c54", "#dd403a", "#a6003e"]);
 
                 map.selectAll(".state")
                     .style("fill", d => {
@@ -273,24 +273,16 @@ const svg = d3.select("#us_map");
             }
 
             function drawLegend(legend, legendColorScale) {
-      
-                // Bonus code here to draw an adaptive gradient legend so we can see different color scales for choropleth maps
-                //  Credit Prof. Rz if you are basing a legend on this structure, and note SERIOUS PERFORMANCE CONSIDERATIONS
-                
                 //const legend = d3.select("#colorLegend");
-                const legendWidth = legend.attr("width");
+                const legendWidth = legend.attr("width") ;
                 const legendHeight = legend.attr("height");
-                const legendMinMax = d3.extent(legendColorScale.domain()); // way to recover the minMax from most kinds of scales
-                const barHeight = 60;
-                const stepSize = 4; // warning, not using a canvas element so lots of rect tags will be created for low stepSize, causing issues with performance
-                // Extend the minmax by 1 in either direction to expose more features
-                const pixelScale = d3.scaleLinear().domain([0,legendWidth-40]).range([legendMinMax[0]-1,legendMinMax[1]+1]); // In this case the "data" are pixels, and we get numbers to use in colorScale
-                const barScale = d3.scaleLinear().domain([legendMinMax[0]-1,legendMinMax[1]+1]).range([0,legendWidth-40]);
+                const legendMinMax = d3.extent(legendColorScale.domain()); 
+                const barHeight = 30;
+                const pixelScale = d3.scaleLinear().domain([0,legendWidth-(legendWidth/5)]).range([legendMinMax[0]-1,legendMinMax[1]+1]); // In this case the "data" are pixels, and we get numbers to use in colorScale
+                const barScale = d3.scaleLinear().domain([legendMinMax[0]-1,legendMinMax[1]+1]).range([0,legendWidth]);
                 const barAxis = d3.axisBottom(barScale);
-                // Check if we're using a quantile scale - if so, we can do better
                 if (legendColorScale.hasOwnProperty('quantiles')) {
-                    // Use the quantile breakpoints plus the min and max of the scale as tick values
-                    barAxis.tickValues(legendColorScale.quantiles().concat( legendMinMax )).tickFormat(function(d,i) {
+                    barAxis.tickValues(legendColorScale.quantiles().concat( legendMinMax )).tickSize(10).tickFormat(function(d,i) {
                         return "$" + Math.round(d) + "/sq ft";
                     });
                 }
@@ -298,20 +290,15 @@ const svg = d3.select("#us_map");
                     .attr("class", "colorbar axis")
                     .attr("transform","translate("+(20)+","+(barHeight+5)+")")
                     .call(barAxis);
-                // Draw rects of color down the bar
                 let bar = legend.append("g").attr("transform","translate("+(20)+","+(0)+")")
-                for (let i=0; i<legendWidth-40; i=i+stepSize) {
+                for (let i=0; i<legendWidth; i= (i+legendWidth/5)){
                     bar.append("rect")
                     .attr("x", i)
                     .attr("y", 0)
-                    .attr("width", stepSize)
+                    .attr("width", legendWidth/5)
                     .attr("height",barHeight)
-                    .style("fill", legendColorScale( pixelScale(i) )); // pixels => countData => color
-                }
-                // Put lines in to mark actual min and max of our data
-                bar.append("line").attr("stroke","white").attr("stroke-width",3).attr("x1", barScale(legendMinMax[0])).attr("x2", barScale(legendMinMax[0])).attr("y1", 0).attr("y1", barHeight+4);
-                bar.append("line").attr("stroke","white").attr("stroke-width",3).attr("x1", barScale(legendMinMax[1])).attr("x2", barScale(legendMinMax[1])).attr("y1", 0).attr("y1", barHeight+4);
-                
-                }
-        }
+                    .style("fill", legendColorScale( pixelScale(i) )); 
+                }   
+            } 
         requestData();
+    }
