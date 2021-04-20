@@ -18,11 +18,10 @@
         h2 {
             font-size: 48px;
         }
-        .state {
-            fill: lightgrey;
-        }
 
         .outline {
+            stroke: black;
+            stroke-width: 1px;
             fill: none;
         }
 
@@ -69,7 +68,7 @@
         </div>
     </div>
     <div id = "us_map_div">
-        <svg id="us_map" height="700" width="1200"></svg>
+        <svg id="us_map" height="1000" width="1200"></svg>
         <svg id="colorLegend" height="100" width="760" style="background: #fff; margin-top:30px" ></svg>
     </div>
 
@@ -80,7 +79,7 @@
             </select>
         </div>
         <div id = "state_map_div">
-            <svg id="state_map" height="700" width="1200"></svg>
+            <svg id="state_map" height="1000" width="1200"></svg>
         </div>
     </div>
     
@@ -88,13 +87,13 @@
         const svg = d3.select("#us_map");
         const width = svg.attr("width");
         const height = svg.attr("height");
-        const margin = { top: 20, right: 20, bottom: 20, left:20};
+        const margin = { top: 10, right: 10, bottom: 10, left:10};
         const mapWidth = width - margin.left - margin.right;
         const mapHeight = height - margin.top - margin.bottom;
+        // const map = svg.append("g");
         const map = svg.append("g")
-                        .attr("transform","translate("+margin.left+","+margin.top+")");
-        
-
+                  .attr("transform","translate("+margin.left+","+margin.top+")");
+                        
         const state_svg = d3.select("#state_map");
         const state_width = state_svg.attr("width");
         const state_height = state_svg.attr("height");
@@ -102,18 +101,16 @@
         const chartWidth = width - state_margin.left - state_margin.right;
         const chartHeight = height - state_margin.top - state_margin.bottom;
         let annotations = state_svg.append("g").attr("id","annotations");
-        let chartArea = state_svg.append("g").attr("id","points")
-                  .attr("transform",`translate(${state_margin.left},${state_margin.top})`);
-
+        let chartArea = state_svg.append("g")
+                .attr("id","points")
+                .attr("transform",`translate(${state_margin.left},${state_margin.top})`);
 
         const requestData = async function() {
             const us = await d3.json("../data/us-smaller.json");
-            // const usa = await d3.json("../data/us.json");
             let selected_year = "2016";
             let selected_state = "AL";
             var states = topojson.feature(us, us.objects.states);
             var statesMesh = topojson.mesh(us, us.objects.states);
-            // var usMesh = topojson.mesh(usa, usa.objects.counties);
             var projection = d3.geoAlbersUsa().fitSize([width, height], states);
             var path = d3.geoPath().projection(projection);
 
@@ -189,39 +186,57 @@
                 element.appendChild(select);
             })
 
-            state_filter.on("change", function() {
-                d3.select("path.line").remove();
+            function state_added() {
                 selected_state = this.value;
-                let state_data = []
+                d3.select("path.line").remove();
+                let states_data = [];
+                let state_abbrev = idToState[this.getAttribute("note")];
+                let state_medians = [];
                 Object.keys(listing_data).forEach(d=>{
-                    state_data.push(listing_data[d][selected_state][0])  
+                    state_medians.push(listing_data[d][state_abbrev][0])  ;
                 })
-                chartArea.selectAll("circle").data(state_data)
-                    .join("circle")
-                    .attr("r", 8)
-                    .attr("fill", "#dd403a")
-                    .attr("cx", (d, i) => dateScale(Object.keys(listing_data)[i]) )
-                    .attr("cy", d => stateScale(d) );
+                states_data.push({
+                    key:   state_abbrev,
+                    value: state_medians
+                });
+
+                console.log("click");
+
+                states_data.forEach(state_data => {
+                    console.log(state_data);
+                    chartArea.selectAll("circle").data(Object.values(state_data))
+                        .join("circle")
+                        .attr("r", 8)
+                        .attr("fill", "#dd403a")
+                        .attr("cx", (d, i) => console.log(d,i))
+                        // dateScale(Object.keys(listing_data)[i]) )
+                        .attr("cy", d => stateScale(d) );
+                })
+            }
+
+                // chartArea.selectAll("circle").data(state_data)
+                //     .join("circle")
+                //     .attr("r", 8)
+                //     .attr("fill", "#dd403a")
+                //     .attr("cx", (d, i) => dateScale(Object.keys(listing_data)[i]) )
+                //     .attr("cy", d => stateScale(d) );
                 
-                lineGen = d3.line()
-                  .x( (d, i) => dateScale(Object.keys(listing_data)[i]) )
-                  .y( d => stateScale(d) )
-                  .curve(d3.curveMonotoneX);
+                // lineGen = d3.line()
+                //   .x( (d, i) => dateScale(Object.keys(listing_data)[i]) )
+                //   .y( d => stateScale(d) )
+                //   .curve(d3.curveMonotoneX);
                 
-                chartArea.append("path")
-                    .datum(state_data)
-                    .attr("class", "line")
-                    .attr("fill", "none")
-                    .attr("stroke", "#dd403a")
-                    .attr("stroke-width", 3)
-                    .attr("opacity", 0.6)
-                    .attr("d", lineGen);
-            })
+                // chartArea.append("path")
+                //     .datum(state_data)
+                //     .attr("class", "line")
+                //     .attr("fill", "none")
+                //     .attr("stroke", "#dd403a")
+                //     .attr("stroke-width", 3)
+                //     .attr("opacity", 0.6)
+                //     .attr("d", lineGen);
 
             let state_data = []
-            Object.keys(listing_data).forEach(d=>{
-                state_data.push(listing_data[d][selected_state][0])  
-            })
+            d3.selectAll(".state").on("click", state_added);
 
             let stateScale = d3.scaleLinear().domain([0, max]).range([chartHeight, 0]);
             const dateExtent = d3.extent(Object.keys(listing_data));
@@ -255,7 +270,6 @@
                 .attr("transform",`translate(${state_margin.left},${chartHeight+state_margin.top+10})`)
                 .call(bottomGridlines);
             
-            console.log(Object.keys(listing_data))
 
             var lineGen = d3.line()
                   .x( (d, i) => dateScale(Object.keys(listing_data)[i]) )
@@ -294,19 +308,41 @@
                 var legendSvg = d3.select("#colorLegend");
                 legendSvg.selectAll("*").remove();
                 selected_year = this.value;
+
+                var dataFilter = listing_data[selected_year];
+
                 minMax = d3.extent(Object.values(listing_data[selected_year]), d => d[0]);
                 colorScale = d3.scaleQuantile()
                          .domain(minMax)
                          .range([ "#f7b267","#ff8a5b","#f25c54","#dd403a"]);
+
                 map.selectAll(".state")
+                    // .datum(dataFilter)
+                    // .transition()
+                    // .duration(1000)
+                    // .style("fill", d => Object.values(d)[0][0])
+                    
                     .style("fill", d => {
                         if (typeof(listing_data[selected_year][idToState[d.id]]) == "undefined") {
                             listing_data[selected_year][idToState[d.id]] = [];
                         }
                         return colorScale( listing_data[selected_year][ idToState[d.id] ][0] );
-                })
+                });
                 drawLegend(d3.select("#colorLegend"), colorScale);
             })
+
+    //         var dataFilter = data.filter(function(d){return d.name==selectedGroup})
+
+    //   // Give these new data to update line
+    //   line
+    //       .datum(dataFilter)
+    //       .transition()
+    //       .duration(1000)
+    //       .attr("d", d3.line()
+    //         .x(function(d) { return x(d.year) })
+    //         .y(function(d) { return y(+d.n) })
+    //       )
+    //       .attr("stroke", function(d){ return myColor(selectedGroup) })
 
             let minMax = d3.extent(Object.values(listing_data[selected_year]), d => d[0]);
 
@@ -325,22 +361,23 @@
 
             drawLegend(d3.select("#colorLegend"), colorScale)
 
-            let tooltipWidth = 120;
-            let tooltipHeight = 40;
+            let tooltipWidth = 140;
+            let tooltipHeight = 80;
             let tooltip = map.append("g")
-                    .attr("class","tooltip")
+                    .attr("class","tool")
                     .attr("visibility","visible");
 
             tooltip.append("rect")
-                .attr("fill", "black")
+                .attr("fill", "white")
                 .attr("opacity", 0.9)
                 .attr("x", -tooltipWidth / 2.0)
                 .attr("y", 0)
                 .attr("width",tooltipWidth)
                 .attr("height",tooltipHeight)
+                .attr("rx", 6)
+                .attr("ry", 6)
 
             let txt = tooltip.append("text")
-                            .attr("fill", "black")
                             .attr("text-anchor","middle")
                             .attr("alignment-baseline","hanging")
                             .attr("x", 0)
@@ -352,6 +389,20 @@
                             .attr("alignment-baseline","hanging")
                             .attr("x", 0)
                             .attr("y", 22);
+                
+            let txt3 = tooltip.append("text")
+                            .attr("fill", "black")
+                            .attr("text-anchor","middle")
+                            .attr("alignment-baseline","hanging")
+                            .attr("x", 0)
+                            .attr("y", 42);
+            
+            let txt4 = tooltip.append("text")
+                            .attr("fill", "black")
+                            .attr("text-anchor","middle")
+                            .attr("alignment-baseline","hanging")
+                            .attr("x", 0)
+                            .attr("y", 62);
             
             let mesh =  map.append("path")
                     .attr("class","mouseover outline")
@@ -361,21 +412,18 @@
             d3.selectAll(".state").on("mouseout",  mouseLeavesPlot);
         
             function mouseEntersPlot() {
-                // console.log("in")
                 tooltip.style("visibility", "visible")
                 let state = d3.select(this);
                 let stateID = state.datum().id;
 
                 var mo = topojson.mesh(us, us.objects.states, function(a, b) { return a.id === stateID || b.id === stateID; });
                 mesh.datum(mo).attr("d", path);
-                // console.log(path)
-                // console.log(idToState[stateID]);
         
                 txt.text(idToState[ stateID ]);
-                // console.log(txt);
-            // txt2.text(stateCounts[ idToState[ stateID  ] ]);
-        
-       
+                txt2.text("$"+listing_data[selected_year][idToState[ stateID ]][0].toFixed(2)+"/sq ft");
+                txt3.text(listing_data[selected_year][idToState[ stateID ]][1].toFixed(2)+"% increase");
+                txt4.text(listing_data[selected_year][idToState[ stateID ]][2].toFixed(2)+"% decrease");
+
                 let bounds = path.bounds( state.datum() ); 
                 let xPos = (bounds[0][0]+bounds[1][0])/2.0;
                 let yPos = bounds[1][1];
@@ -388,7 +436,7 @@
                 tooltip.style("visibility","hidden");
         
                 let state = d3.select(this);
-                state.attr("stroke","none").attr("stroke-width", 0);
+                // state.attr("stroke","none").attr("stroke-width", 0);
                 mesh.attr("d", "");
             }
 
