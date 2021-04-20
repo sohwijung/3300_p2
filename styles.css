@@ -1,0 +1,40 @@
+.gridlines line {
+    stroke: #bbb;
+}
+.gridlines .domain {
+    stroke: none;
+}
+h2 {
+    font-size: 48px;
+}
+.outline {
+    stroke: black;
+    stroke-width: 1px;
+    fill: none;
+}
+.heading {
+    text-align: center;
+    padding: 10px;
+    margin-top: 30px;
+}
+.select {
+    text-align: right;
+    margin-right: 20em;
+}
+.state_graph {
+    margin-top: 80px;
+}
+.mouseover {
+    stroke-width: 3px;
+    pointer-events: none;
+}
+#us_map_div, #state_map_div {
+    text-align: center;
+}
+
+#colorLegend {
+    font-size: 20px;
+}
+#clear_button:hover {
+    cursor: pointer;
+}
