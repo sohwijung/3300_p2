@@ -276,7 +276,7 @@ const requestData = async function() {
         tooltip.style("visibility", "hidden");
         mesh.attr("d", "");
     }
-
+    const legendMargins = {"top": 10, "right": 10, "bottom": 50, "left": 50};
     function drawLegend(legend, legendColorScale) {
         //const legend = d3.select("#colorLegend");
         const legendWidth = legend.attr("width");
@@ -299,6 +299,9 @@ const requestData = async function() {
         for (let i = 0; i < legendWidth; i = (i + legendWidth / 5)) {
             bar.append("rect").attr("x", i).attr("y", 0).attr("width", legendWidth / 5).attr("height", barHeight).style("fill", legendColorScale(pixelScale(i)));
         }
+        svg.append("g").attr("class", "color_legend") 
+        .attr("transform","translate("+margins.left+","+(chartHeight+margins.top+10)+")")
+        .call(barAxis);
     }
 }
 requestData();
