@@ -55,6 +55,9 @@
         html {
             height: 10000px;
         }
+        #clear_button:hover {
+            cursor: pointer;
+        }
 
     </style>
     <title>Project 2</title>
@@ -74,9 +77,8 @@
 
     <div class="state_graph">
         <h2 class = "heading">State Real Estate Trend</h2>
-        <div class="select">
-            <select id="state-select" style="width: 260px;">
-            </select>
+        <div class="clear" style="text-align: center;">
+            <p id="clear_button" style="font-size: 28px;">Clear</p>
         </div>
         <div id = "state_map_div">
             <svg id="state_map" height="1000" width="1200"></svg>
@@ -90,7 +92,6 @@
         const margin = { top: 10, right: 10, bottom: 10, left:10};
         const mapWidth = width - margin.left - margin.right;
         const mapHeight = height - margin.top - margin.bottom;
-        // const map = svg.append("g");
         const map = svg.append("g")
                   .attr("transform","translate("+margin.left+","+margin.top+")");
                         
@@ -176,80 +177,49 @@
             console.log("min", min)
             console.log("max", max)
 
-            let state_filter = d3.select("#state-select");
-            Object.values(idToState).forEach(d => {
-                let element = document.getElementById("state-select")
-                let select = document.createElement("option");
-                select.value = d;
-                let node = document.createTextNode(d);
-                select.appendChild(node);
-                element.appendChild(select);
-            })
-
             function state_added() {
-                selected_state = this.value;
-                d3.select("path.line").remove();
-                let states_data = [];
-                let state_abbrev = idToState[this.getAttribute("note")];
-                let state_medians = [];
-                Object.keys(listing_data).forEach(d=>{
-                    state_medians.push(listing_data[d][state_abbrev][0])  ;
+                selected_state = idToState[this.getAttribute("note")];
+                let state_data = []
+                Object.keys(listing_data).forEach(d => {
+                    state_data.push(listing_data[d][selected_state][0])
                 })
-                states_data.push({
-                    key:   state_abbrev,
-                    value: state_medians
-                });
 
-                console.log("click");
+                lineGen = d3.line()
+                    .x((d, i) => dateScale(Object.keys(listing_data)[i]))
+                    .y(d => stateScale(d))
+                    .curve(d3.curveMonotoneX);
 
-                states_data.forEach(state_data => {
-                    console.log(state_data);
-                    chartArea.selectAll("circle").data(Object.values(state_data))
-                        .join("circle")
-                        .attr("r", 8)
-                        .attr("fill", "#dd403a")
-                        .attr("cx", (d, i) => console.log(d,i))
-                        // dateScale(Object.keys(listing_data)[i]) )
-                        .attr("cy", d => stateScale(d) );
-                })
+                chartArea.append("path")
+                    .datum(state_data)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", "#dd403a")
+                    .attr("stroke-width", 3)
+                    .attr("opacity", 0.6)
+                    .attr("id", selected_state+"_"+selected_year)
+                    .attr("d", lineGen);
+                
+                let id = selected_state+"_"+selected_year;
+                let span= document.createElement("span");
+                span.innerHTML = "<p>"+id+"</p>";
+                span.id = id;
+                document.body.appendChild(span);
+                span.translate(10,10);
             }
 
-                // chartArea.selectAll("circle").data(state_data)
-                //     .join("circle")
-                //     .attr("r", 8)
-                //     .attr("fill", "#dd403a")
-                //     .attr("cx", (d, i) => dateScale(Object.keys(listing_data)[i]) )
-                //     .attr("cy", d => stateScale(d) );
-                
-                // lineGen = d3.line()
-                //   .x( (d, i) => dateScale(Object.keys(listing_data)[i]) )
-                //   .y( d => stateScale(d) )
-                //   .curve(d3.curveMonotoneX);
-                
-                // chartArea.append("path")
-                //     .datum(state_data)
-                //     .attr("class", "line")
-                //     .attr("fill", "none")
-                //     .attr("stroke", "#dd403a")
-                //     .attr("stroke-width", 3)
-                //     .attr("opacity", 0.6)
-                //     .attr("d", lineGen);
-
-            let state_data = []
             d3.selectAll(".state").on("click", state_added);
+            d3.select("#clear_button").on("click", function() {
+                d3.selectAll("path.line").remove();
+                d3.selectAll("span").remove();
+            })
 
             let stateScale = d3.scaleLinear().domain([0, max]).range([chartHeight, 0]);
             const dateExtent = d3.extent(Object.keys(listing_data));
             const dateScale = d3.scaleLinear().domain(dateExtent).range([0,chartWidth]);
-            console.log(state_data)
             let leftAxis = d3.axisLeft(stateScale)
             let leftGridlines = d3.axisLeft(stateScale)
                                     .tickSize(-chartWidth-10)
                                     .tickFormat(d3.format("$d"))
-            // annotations.append("g")
-            //     .attr("class", "y axis")
-            //     .attr("transform",`translate(${margin.left-10},${margin.top})`)
-            //     .call(leftAxis)
             annotations.append("g")
                 .attr("class", "y gridlines")
                 .attr("transform",`translate(${state_margin.left-10},${state_margin.top})`)
@@ -260,39 +230,10 @@
                                     .ticks(6)
                                     .tickSize(-chartHeight-10)
                                     .tickFormat(d3.format("d"));
-
-            // annotations.append("g")
-            //     .attr("class", "x axis")
-            //     .attr("transform",`translate(${margin.left},${chartHeight+margin.top+10})`)
-            //     .call(bottomAxis);
             annotations.append("g")
                 .attr("class", "x gridlines")
                 .attr("transform",`translate(${state_margin.left},${chartHeight+state_margin.top+10})`)
                 .call(bottomGridlines);
-            
-
-            var lineGen = d3.line()
-                  .x( (d, i) => dateScale(Object.keys(listing_data)[i]) )
-                  .y( d => stateScale(d) )
-                  .curve(d3.curveMonotoneX);
-                
-            chartArea.append("path")
-                .datum(state_data)
-                .attr("class", "line")
-                .attr("fill", "none")
-                .attr("stroke", "#dd403a")
-                .attr("stroke-width", 3)
-                .attr("opacity", 0.6)
-                .attr("d", lineGen);
-
-            chartArea.selectAll("circle").data(state_data)
-                .join("circle")
-                .attr("r", 8)
-                .attr("fill", "#dd403a")
-                .attr("cx", (d, i) => dateScale(Object.keys(listing_data)[i]) )
-                .attr("cy", d => stateScale(d) );
-
-            
 
             let year_filter = d3.select("#year-select");
             Object.keys(listing_data).forEach( d => {
@@ -317,11 +258,6 @@
                          .range([ "#f7b267","#ff8a5b","#f25c54","#dd403a"]);
 
                 map.selectAll(".state")
-                    // .datum(dataFilter)
-                    // .transition()
-                    // .duration(1000)
-                    // .style("fill", d => Object.values(d)[0][0])
-                    
                     .style("fill", d => {
                         if (typeof(listing_data[selected_year][idToState[d.id]]) == "undefined") {
                             listing_data[selected_year][idToState[d.id]] = [];
@@ -331,22 +267,8 @@
                 drawLegend(d3.select("#colorLegend"), colorScale);
             })
 
-    //         var dataFilter = data.filter(function(d){return d.name==selectedGroup})
-
-    //   // Give these new data to update line
-    //   line
-    //       .datum(dataFilter)
-    //       .transition()
-    //       .duration(1000)
-    //       .attr("d", d3.line()
-    //         .x(function(d) { return x(d.year) })
-    //         .y(function(d) { return y(+d.n) })
-    //       )
-    //       .attr("stroke", function(d){ return myColor(selectedGroup) })
-
             let minMax = d3.extent(Object.values(listing_data[selected_year]), d => d[0]);
 
-            // How to choose colors ?
             let colorScale = d3.scaleQuantile()
                          .domain(minMax)
                          .range(["#f7b267","#ff8a5b","#f25c54","#dd403a"]);
@@ -432,11 +354,9 @@
             }
         
             function mouseLeavesPlot() {
-                // console.log("out");
                 tooltip.style("visibility","hidden");
-        
+    
                 let state = d3.select(this);
-                // state.attr("stroke","none").attr("stroke-width", 0);
                 mesh.attr("d", "");
             }
 
