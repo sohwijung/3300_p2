@@ -75,8 +75,8 @@
         </div>
     </div>
     <div id="us_map_div">
-        <svg id="us_map" height="700" width="1200"></svg>
-        <svg id="colorLegend" height="100" width="900" style="background: #fff; margin-top:30px; "></svg>
+        <svg id="us_map" height="950" width="1200"></svg>
+        <svg id="colorLegend" height="100" width="1000" style="background: #fff; margin-top:30px; "></svg>
     </div>
 
     <div class="state_graph">
@@ -387,28 +387,36 @@
             //  Credit to Prof. Rz 
             function drawLegend(legend, legendColorScale) {
                 //const legend = d3.select("#colorLegend");
+
+                const legendMargins = {
+                    "top": 35,
+                    "right": 0,
+                    "bottom": 50,
+                    "left": 0
+                };
                 const legendWidth = legend.attr("width");
                 const legendHeight = legend.attr("height");
                 const legendMinMax = d3.extent(legendColorScale.domain());
                 const barHeight = 30;
                 const pixelScale = d3.scaleLinear().domain([0, legendWidth - (legendWidth / 5)]).range([legendMinMax[0] - 1, legendMinMax[1] + 1]); // In this case the "data" are pixels, and we get numbers to use in colorScale
-                const barScale = d3.scaleLinear().domain([legendMinMax[0] - 1, legendMinMax[1] + 1]).range([0, legendWidth]);
+                const barScale = d3.scaleLinear().domain([legendMinMax[0] - 1, legendMinMax[1] + 1]).range([20, legendWidth - 20]);
                 const barAxis = d3.axisBottom(barScale);
                 if (legendColorScale.hasOwnProperty('quantiles')) {
-                    barAxis.tickValues(legendColorScale.quantiles().concat(legendMinMax)).tickSize(10).tickFormat(function(d, i) {
+                    barAxis.tickValues(legendColorScale.quantiles().concat(legendMinMax)).tickFormat(function(d, i) {
                         return "$" + Math.round(d) + "/sq ft";
                     });
                 }
                 legend.append("g")
                     .attr("class", "colorbar axis")
-                    .attr("transform", "translate(" + (20) + "," + (barHeight + 5) + ")")
+                    .attr("transform", "translate(" + (legendMargins.left) + "," + legendMargins.top + ")")
                     .call(barAxis);
-                let bar = legend.append("g").attr("transform", "translate(" + (20) + "," + (0) + ")")
-                for (let i = 0; i < legendWidth; i = (i + legendWidth / 5)) {
+                let bar = legend.append("g").attr("transform", "translate(" + (legendMargins.left + 20) + "," + (barHeight + legendMargins.top - 65) + ")")
+                let barWidth = legendWidth - 40;
+                for (let i = 0; i < barWidth; i = (i + barWidth / 5)) {
                     bar.append("rect")
                         .attr("x", i)
                         .attr("y", 0)
-                        .attr("width", legendWidth / 5)
+                        .attr("width", barWidth / 5)
                         .attr("height", barHeight)
                         .style("fill", legendColorScale(pixelScale(i)));
                 }
