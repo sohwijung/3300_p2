@@ -245,6 +245,20 @@
             d3.select("#clear_button").on("click", function() {
                 d3.selectAll("path.line").remove();
                 d3.selectAll("text.state_text").remove();
+
+                annotations.append("text")
+                    .attr("x", 75)
+                    .attr("y", 10)
+                    .attr("text-anchor", "middle")
+                    .attr("alignment-baseline", "hanging")
+                    .attr("color", "red")
+                    .attr("class", "clear_button")
+                    .text("Cleared!")
+                
+                setTimeout( function (event) {
+                    d3.select("text.clear_button").remove();
+                }, 1500)
+                
             })
 
             d3.selectAll(".line").on("click", function() {
@@ -402,7 +416,23 @@
                     .attr("class", `state_text ${selected_state}`)
                     .attr("id", selected_state)
                     .text(selected_state)
+
+                // console.log(d3.mouse(this));
             }
+
+            svg.on('click', () => {
+                svg.append("text")
+                    .attr("x", d3.pointer(event)[0])
+                    .attr("y", d3.pointer(event)[1])
+                    .attr("text-anchor", "middle")
+                    .attr("class", "added_text")
+                    .attr("alignment-baseline", "ideographic")
+                    .text(`${selected_state} added!`)
+
+                setTimeout( function (event) {
+                    d3.select("text.added_text").remove();
+                }, 1500)
+            });
 
             function mouseEntersPlot() {
                 tooltip.style("visibility", "visible")
