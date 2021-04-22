@@ -105,6 +105,10 @@
             width: 100px;
             font-size: 20px;
         }
+
+        html {
+            margin-bottom: 100px;
+        }
     </style>
     <title>Project 2</title>
 </head>
@@ -122,9 +126,10 @@
         </div>
 
         <div class="each_container left_container">
-            <svg id="us_map" height="680" width="900"></svg>
+            <svg id="us_map" height="700" width="900"></svg>
             <div id="legendDiv">
-                <svg id="colorLegend" height="100" width="800" style="background: #fff; margin-top:30px; "></svg>
+                <svg id="colorLegend" height="70" width="800" style="background: #fff; margin-top:30px; "></svg>
+                <p>Median Listing Price Per Square Ft</p>
             </div>
         </div>
 
@@ -141,7 +146,7 @@
         const height = svg.attr("height");
         const margin = {
             top: 10,
-            right: 20,
+            right: 50,
             bottom: 10,
             left: 10
         };
@@ -397,7 +402,6 @@
                     .attr("class", `state_text ${selected_state}`)
                     .attr("id", selected_state)
                     .text(selected_state)
-
             }
 
             function mouseEntersPlot() {
