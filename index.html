@@ -8,6 +8,11 @@
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://d3js.org/topojson.v2.min.js"></script>
     <style>
+        .container{
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+        }
         .gridlines line {
             stroke: #bbb;
         }
@@ -62,22 +67,25 @@
         #clear_button:hover {
             cursor: pointer;
         }
+       
     </style>
     <title>Project 2</title>
 </head>
 
 <body>
-    <div>
+<div class = "container">
+    <div class = "title_yearSelect">
         <h2 class="heading">Real Estate Trends</h2>
         <div class="select">
             <select id="year-select" style="width: 260px;">
             </select>
         </div>
+        <div id="us_map_div">
+            <svg id="us_map" height="950" width="1200"></svg>
+            <svg id="colorLegend" height="100" width="1000" style="background: #fff; margin-top:30px; "></svg>
+        </div>
     </div>
-    <div id="us_map_div">
-        <svg id="us_map" height="950" width="1200"></svg>
-        <svg id="colorLegend" height="100" width="1000" style="background: #fff; margin-top:30px; "></svg>
-    </div>
+    
 
     <div class="state_graph">
         <h2 class="heading">State Real Estate Trend</h2>
@@ -88,6 +96,7 @@
             <svg id="state_map" height="1000" width="1200"></svg>
         </div>
     </div>
+</div>
 
     <script>
         const svg = d3.select("#us_map");
