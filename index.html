@@ -238,8 +238,7 @@
 
             d3.selectAll(".state").on("click", state_added);
             d3.select("#clear_button").on("click", function() {
-                d3.selectAll("path.line").remove();
-                d3.selectAll("text.state_text").remove();
+                d3.selectAll(".line_text").remove();
             })
 
             d3.selectAll(".line").on("click", function() {
@@ -366,6 +365,14 @@
             d3.selectAll(".state").on("mouseout", mouseLeavesPlot);
 
             function state_added() {
+                let newLine = chartArea.append("g")
+                    .attr("class", "line_text")
+
+                // console.log(this.getAttribute("note"))
+
+
+
+
                 selected_state = idToState[this.getAttribute("note")];
                 let state_data = []
                 Object.keys(listing_data).forEach(d => {
@@ -377,26 +384,49 @@
                     .y(d => stateScale(d))
                     .curve(d3.curveMonotoneX);
 
-                chartArea.append("path")
+
+                newLine.append("path")
                     .datum(state_data)
-                    .attr("class", "line")
                     .attr("fill", "none")
                     .attr("stroke", "black")
                     .attr("opacity", 0.5)
-                    .attr("stroke-width", 5)
-                    .attr("opacity", 0.3)
-                    .attr("class", `line ${selected_state}`)
+                    .attr("stroke-width", 3)
+                    // .attr("class", `line ${selected_state}`)
+                    .attr("class", "added_line")
                     .attr("d", lineGen);
 
-                chartArea.append("text")
+                newLine.append("text")
                     .attr("x", dateScale(2021))
                     .attr("y", stateScale(state_data[state_data.length - 1]) - 20)
                     .attr("text-anchor", "middle")
                     .attr("alignment-baseline", "hanging")
-                    .attr("opacity", 0.6)
-                    .attr("class", `state_text ${selected_state}`)
+                    .attr("stroke", "black")
+                    .attr("opacity", 0.5)
+                    .attr("stroke-width", 3)
+                    // .attr("class", `state_text ${selected_state}`)
+                    .attr("class", "added_line")
                     .attr("id", selected_state)
                     .text(selected_state)
+
+                d3.selectAll(".line_text").on("mouseenter", mouseEnterState).attr("cursor", "pointer");
+                d3.selectAll(".line_text").on("mouseout", mouseLeavesState);
+
+
+            }
+
+            function mouseEnterState() {
+                let select_line = d3.select(this);
+                select_line.attr("stroke", "black")
+                    .attr("opacity", 0.8)
+                    .attr("stroke-width", 5)
+
+            }
+
+            function mouseLeavesState() {
+                let select_line = d3.select(this);
+                select_line.attr("fill", "none")
+                    .attr("opacity", 0.5)
+                    .attr("stroke-width", 3)
 
             }
 
@@ -428,6 +458,7 @@
                 let state = d3.select(this);
                 mesh.attr("d", "");
             }
+
             //  Credit to Prof. Rz 
             function drawLegend(legend, legendColorScale) {
                 //const legend = d3.select("#colorLegend");
