@@ -81,7 +81,7 @@ const requestData = async function() {
                 listing_data[year] = state;
             }
         })
-    // Finding minimum, maximum every state's median listing price
+        // Finding minimum, maximum every state's median listing price
     let min = Infinity;
     let max = -Infinity;
 
@@ -154,8 +154,7 @@ const requestData = async function() {
     d3.selectAll(".state").on("click", state_added);
     // Interaction on clear
     d3.select("#clear_button").on("click", function() {
-        d3.selectAll("path.line").remove();
-        d3.selectAll("text.state_text").remove();
+        d3.selectAll(".line_text").remove();
 
         annotations.append("text")
             .attr("x", 75)
@@ -165,10 +164,10 @@ const requestData = async function() {
             .attr("color", "red")
             .attr("class", "clear_button")
             .text("Cleared!")
-        
-        setTimeout( function (event) {
+
+        setTimeout(function(event) {
             d3.select("text.clear_button").remove();
-        }, 1500) 
+        }, 1500)
     })
 
     // Interaction for state click
@@ -181,7 +180,7 @@ const requestData = async function() {
             .attr("alignment-baseline", "ideographic")
             .text(`${selected_state} added!`)
 
-        setTimeout( function (event) {
+        setTimeout(function(event) {
             d3.select("text.added_text").remove();
         }, 1500)
     });
@@ -255,6 +254,9 @@ const requestData = async function() {
     drawLegend(d3.select("#colorLegend"), colorScale)
 
     function state_added() {
+        let newLine = chartArea.append("g")
+            .attr("class", "line_text")
+
         selected_state = idToState[this.getAttribute("note")];
         let state_data = []
         Object.keys(listing_data).forEach(d => {
@@ -266,26 +268,49 @@ const requestData = async function() {
             .y(d => stateScale(d))
             .curve(d3.curveMonotoneX);
 
-        chartArea.append("path")
+        newLine.append("path")
             .datum(state_data)
-            .attr("class", "line")
             .attr("fill", "none")
             .attr("stroke", "black")
             .attr("opacity", 0.5)
-            .attr("stroke-width", 3.5)
-            .attr("opacity", 0.3)
-            .attr("class", `line ${selected_state}`)
+            .attr("stroke-width", 3)
+            // .attr("class", `line ${selected_state}`)
+            .attr("class", "added_line")
             .attr("d", lineGen);
 
-        chartArea.append("text")
+        newLine.append("text")
             .attr("x", dateScale(2021))
             .attr("y", stateScale(state_data[state_data.length - 1]) - 20)
             .attr("text-anchor", "middle")
             .attr("alignment-baseline", "hanging")
-            .attr("opacity", 0.6)
-            .attr("class", `state_text ${selected_state}`)
+            .attr("stroke", "black")
+            .attr("opacity", 0.5)
+            .attr("stroke-width", 3)
+            // .attr("class", `state_text ${selected_state}`)
+            .attr("class", "added_line")
             .attr("id", selected_state)
             .text(selected_state)
+
+        d3.selectAll(".line_text").on("mouseenter", mouseEnterState).attr("cursor", "pointer");
+        d3.selectAll(".line_text").on("mouseout", mouseLeavesState);
+
+
+    }
+
+    function mouseEnterState() {
+        let select_line = d3.select(this);
+        select_line.attr("stroke", "black")
+            .attr("opacity", 0.8)
+            .attr("stroke-width", 5)
+
+    }
+
+    function mouseLeavesState() {
+        let select_line = d3.select(this);
+        select_line.attr("fill", "none")
+            .attr("opacity", 0.5)
+            .attr("stroke-width", 3)
+
     }
 
     function mouseEntersPlot() {
