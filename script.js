@@ -1,7 +1,12 @@
 const svg = d3.select("#us_map");
 const width = svg.attr("width");
 const height = svg.attr("height");
-const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+const margin = {
+    top: 10,
+    right: 50,
+    bottom: 10,
+    left: 10
+};
 const mapWidth = width - margin.left - margin.right;
 const mapHeight = height - margin.top - margin.bottom;
 const map = svg.append("g")
@@ -10,9 +15,14 @@ const map = svg.append("g")
 const state_svg = d3.select("#state_map");
 const state_width = state_svg.attr("width");
 const state_height = state_svg.attr("height");
-const state_margin = { top: 10, right: 10, bottom: 50, left: 50 };
-const chartWidth = width - state_margin.left - state_margin.right;
-const chartHeight = height - state_margin.top - state_margin.bottom;
+const state_margin = {
+    top: 10,
+    right: 40,
+    bottom: 50,
+    left: 40
+};
+const chartWidth = state_width - state_margin.left - state_margin.right;
+const chartHeight = state_height - state_margin.top - state_margin.bottom;
 let annotations = state_svg.append("g").attr("id", "annotations");
 let chartArea = state_svg.append("g")
     .attr("id", "points")
@@ -22,10 +32,10 @@ const requestData = async function() {
     const us = await d3.json("../data/us-smaller.json");
     let selected_year = "2016";
     let selected_state = "AL";
-    var states = topojson.feature(us, us.objects.states);
-    var statesMesh = topojson.mesh(us, us.objects.states);
-    var projection = d3.geoAlbersUsa().fitSize([width, height], states);
-    var path = d3.geoPath().projection(projection);
+    let states = topojson.feature(us, us.objects.states);
+    let statesMesh = topojson.mesh(us, us.objects.states);
+    let projection = d3.geoAlbersUsa().fitSize([mapWidth, mapHeight], states);
+    let path = d3.geoPath().projection(projection);
 
     map.selectAll("path.state").data(states.features)
         .join("path")
@@ -40,38 +50,38 @@ const requestData = async function() {
         .attr("d", path);
 
     const listings = await d3.json("../data/listings.json");
-    var stateIDs = await d3.tsv("../data/us-state-names.tsv");
+    let stateIDs = await d3.tsv("../data/us-state-names.tsv");
     let idToState = {}
 
     stateIDs.forEach(row => {
         idToState[row.id] = row.code;
     });
-
+    // Data Cleaning
     let listing_data = {}
     listings.forEach(row => {
-        year = row["month_date_yyyymm"].toString().slice(0, 4);
-        if (year in listing_data) {
-            if (Object.keys(listing_data[year]).includes(row["state_id"])) {
-                listing_data[year][row["state_id"].toUpperCase()][0] += row["median_listing_price_per_square_foot"];
-                listing_data[year][row["state_id"].toUpperCase()][1] += (row["price_increased_count"] / row["total_listing_count"]) * 100;
-                listing_data[year][row["state_id"].toUpperCase()][2] += (row["price_reduced_count"] / row["total_listing_count"]) * 100;
-                listing_data[year][row["state_id"].toUpperCase()][3] += 1;
+            year = row["month_date_yyyymm"].toString().slice(0, 4);
+            if (year in listing_data) {
+                if (Object.keys(listing_data[year]).includes(row["state_id"])) {
+                    listing_data[year][row["state_id"].toUpperCase()][0] += row["median_listing_price_per_square_foot"];
+                    listing_data[year][row["state_id"].toUpperCase()][1] += (row["price_increased_count"] / row["total_listing_count"]) * 100;
+                    listing_data[year][row["state_id"].toUpperCase()][2] += (row["price_reduced_count"] / row["total_listing_count"]) * 100;
+                    listing_data[year][row["state_id"].toUpperCase()][3] += 1;
+                } else {
+                    listing_data[year][row["state_id"].toUpperCase()] = [row["median_listing_price_per_square_foot"],
+                        (row["price_increased_count"] / row["total_listing_count"]) * 100,
+                        (row["price_reduced_count"] / row["total_listing_count"]) * 100, 1
+                    ]
+                }
             } else {
-                listing_data[year][row["state_id"].toUpperCase()] = [row["median_listing_price_per_square_foot"],
+                let state = new Object();
+                state[row["state_id"].toUpperCase()] = [row["median_listing_price_per_square_foot"],
                     (row["price_increased_count"] / row["total_listing_count"]) * 100,
                     (row["price_reduced_count"] / row["total_listing_count"]) * 100, 1
                 ]
+                listing_data[year] = state;
             }
-        } else {
-            var state = new Object();
-            state[row["state_id"].toUpperCase()] = [row["median_listing_price_per_square_foot"],
-                (row["price_increased_count"] / row["total_listing_count"]) * 100,
-                (row["price_reduced_count"] / row["total_listing_count"]) * 100, 1
-            ]
-            listing_data[year] = state;
-        }
-    })
-
+        })
+    // Finding minimum, maximum every state's median listing price
     let min = Infinity;
     let max = -Infinity;
 
@@ -88,119 +98,7 @@ const requestData = async function() {
         }
     })
 
-    console.log("min", min)
-    console.log("max", max)
-
-    function state_added() {
-        selected_state = idToState[this.getAttribute("note")];
-        let state_data = []
-        Object.keys(listing_data).forEach(d => {
-            state_data.push(listing_data[d][selected_state][0])
-        })
-
-        lineGen = d3.line()
-            .x((d, i) => dateScale(Object.keys(listing_data)[i]))
-            .y(d => stateScale(d))
-            .curve(d3.curveMonotoneX);
-
-        chartArea.append("path")
-            .datum(state_data)
-            .attr("class", "line")
-            .attr("fill", "none")
-            .attr("stroke", "#dd403a")
-            .attr("stroke-width", 3)
-            .attr("opacity", 0.6)
-            .attr("id", selected_state + "_" + selected_year)
-            .attr("d", lineGen);
-
-        let id = selected_state + "_" + selected_year;
-        let span = document.createElement("span");
-        span.innerHTML = "<p>" + id + "</p>";
-        span.id = id;
-        document.body.appendChild(span);
-        span.translate(10, 10);
-    }
-
-    d3.selectAll(".state").on("click", state_added);
-    d3.select("#clear_button").on("click", function() {
-        d3.selectAll("path.line").remove();
-        d3.selectAll("span").remove();
-    })
-
-    let stateScale = d3.scaleLinear().domain([0, max]).range([chartHeight, 0]);
-    const dateExtent = d3.extent(Object.keys(listing_data));
-    const dateScale = d3.scaleLinear().domain(dateExtent).range([0, chartWidth]);
-    let leftAxis = d3.axisLeft(stateScale)
-    let leftGridlines = d3.axisLeft(stateScale)
-        .tickSize(-chartWidth - 10)
-        .tickFormat(d3.format("$d"))
-    annotations.append("g")
-        .attr("class", "y gridlines")
-        .attr("transform", `translate(${state_margin.left-10},${state_margin.top})`)
-        .call(leftGridlines);
-
-    let bottomAxis = d3.axisBottom(dateScale)
-    let bottomGridlines = d3.axisBottom(dateScale)
-        .ticks(6)
-        .tickSize(-chartHeight - 10)
-        .tickFormat(d3.format("d"));
-    annotations.append("g")
-        .attr("class", "x gridlines")
-        .attr("transform", `translate(${state_margin.left},${chartHeight+state_margin.top+10})`)
-        .call(bottomGridlines);
-
-    let year_filter = d3.select("#year-select");
-    Object.keys(listing_data).forEach(d => {
-        let element = document.getElementById("year-select")
-        let select = document.createElement("option");
-        select.value = d;
-        let node = document.createTextNode(d);
-        select.appendChild(node);
-        element.appendChild(select);
-    })
-
-    year_filter.on("change", function() {
-        var legendSvg = d3.select("#colorLegend");
-        legendSvg.selectAll("*").remove();
-        selected_year = this.value;
-
-        var dataFilter = listing_data[selected_year];
-
-        // minMax = d3.extent(Object.values(listing_data[selected_year]), d => d[0]);
-        colorScale = d3.scaleQuantile()
-            .domain([min, max])
-            .range(["#f7b267", "#ff8a5b", "#f25c54", "#dd403a", "#a6003e"]);
-
-        map.selectAll(".state")
-            .transition()
-            .duration(1500)
-            .style("fill", d => {
-                if (typeof(listing_data[selected_year][idToState[d.id]]) == "undefined") {
-                    listing_data[selected_year][idToState[d.id]] = [];
-                }
-                return colorScale(listing_data[selected_year][idToState[d.id]][0]);
-            });
-        drawLegend(d3.select("#colorLegend"), colorScale);
-    })
-
-    // let minMax = d3.extent(Object.values(listing_data[selected_year]), d => d[0]);
-
-    let colorScale = d3.scaleQuantile()
-        // .domain(minMax)
-        .domain([min, max])
-        .range(["#f7b267", "#ff8a5b", "#f25c54", "#dd403a", "#a6003e"]);
-
-    map.selectAll(".state")
-        .attr("state", d => (listing_data[selected_year][idToState[d.id]]))
-        .style("fill", d => {
-            if (typeof(listing_data[selected_year][idToState[d.id]]) == "undefined") {
-                listing_data[selected_year][idToState[d.id]] = [];
-            }
-            return colorScale(listing_data[selected_year][idToState[d.id]][0]);
-        });
-
-    drawLegend(d3.select("#colorLegend"), colorScale)
-
+    // Tooltip
     let tooltipWidth = 140;
     let tooltipHeight = 80;
     let tooltip = map.append("g")
@@ -249,15 +147,154 @@ const requestData = async function() {
         .attr("class", "mouseover outline")
         .attr("d", "");
 
-    d3.selectAll(".state").on("mouseenter", mouseEntersPlot).attr('cursor', 'pointer');
+    d3.selectAll(".state").on("mouseenter", mouseEntersPlot).attr("cursor", "pointer");
     d3.selectAll(".state").on("mouseout", mouseLeavesPlot);
+
+    // Interaction on state
+    d3.selectAll(".state").on("click", state_added);
+    // Interaction on clear
+    d3.select("#clear_button").on("click", function() {
+        d3.selectAll("path.line").remove();
+        d3.selectAll("text.state_text").remove();
+
+        annotations.append("text")
+            .attr("x", 75)
+            .attr("y", 10)
+            .attr("text-anchor", "middle")
+            .attr("alignment-baseline", "hanging")
+            .attr("color", "red")
+            .attr("class", "clear_button")
+            .text("Cleared!")
+        
+        setTimeout( function (event) {
+            d3.select("text.clear_button").remove();
+        }, 1500) 
+    })
+
+    // Interaction for state click
+    svg.on('click', () => {
+        svg.append("text")
+            .attr("x", d3.pointer(event)[0])
+            .attr("y", d3.pointer(event)[1])
+            .attr("text-anchor", "middle")
+            .attr("class", "added_text")
+            .attr("alignment-baseline", "ideographic")
+            .text(`${selected_state} added!`)
+
+        setTimeout( function (event) {
+            d3.select("text.added_text").remove();
+        }, 1500)
+    });
+
+    // Dropdown for year
+    let year_filter = d3.select("#year-select");
+    Object.keys(listing_data).forEach(d => {
+        let element = document.getElementById("year-select")
+        let select = document.createElement("option");
+        select.value = d;
+        let node = document.createTextNode(d);
+        select.appendChild(node);
+        element.appendChild(select);
+    })
+
+    // Interaction for year
+    year_filter.on("change", function() {
+        let legendSvg = d3.select("#colorLegend");
+        legendSvg.selectAll("*").remove();
+        selected_year = this.value;
+        let dataFilter = listing_data[selected_year];
+        colorScale = d3.scaleQuantile()
+            .domain([min, max])
+            .range(["#f7b267", "#ff8a5b", "#f25c54", "#dd403a", "#a6003e"]);
+
+        map.selectAll(".state")
+            .transition()
+            .duration(1500)
+            .style("fill", d => {
+                if (typeof(listing_data[selected_year][idToState[d.id]]) == "undefined") {
+                    listing_data[selected_year][idToState[d.id]] = [];
+                }
+                return colorScale(listing_data[selected_year][idToState[d.id]][0]);
+            });
+        drawLegend(d3.select("#colorLegend"), colorScale);
+    })
+
+    // Line graph
+    let stateScale = d3.scaleLinear().domain([0, max]).range([chartHeight, 0]);
+    const dateExtent = d3.extent(Object.keys(listing_data));
+    const dateScale = d3.scaleLinear().domain(dateExtent).range([0, chartWidth]);
+    let leftAxis = d3.axisLeft(stateScale)
+    let leftGridlines = d3.axisLeft(stateScale)
+        .tickSize(-chartWidth - 10)
+        .tickFormat(d3.format("$d"))
+    annotations.append("g")
+        .attr("class", "y gridlines")
+        .attr("transform", `translate(${state_margin.left-10},${state_margin.top})`)
+        .call(leftGridlines);
+    let bottomAxis = d3.axisBottom(dateScale)
+    let bottomGridlines = d3.axisBottom(dateScale)
+        .ticks(6)
+        .tickSize(-chartHeight - 10)
+        .tickFormat(d3.format("d"));
+    annotations.append("g")
+        .attr("class", "x gridlines")
+        .attr("transform", `translate(${state_margin.left},${chartHeight+state_margin.top+10})`)
+        .call(bottomGridlines);
+
+    let colorScale = d3.scaleQuantile()
+        .domain([min, max])
+        .range(["#f7b267", "#ff8a5b", "#f25c54", "#dd403a", "#a6003e"]);
+    map.selectAll(".state")
+        .attr("state", d => (listing_data[selected_year][idToState[d.id]]))
+        .style("fill", d => {
+            if (typeof(listing_data[selected_year][idToState[d.id]]) == "undefined") {
+                listing_data[selected_year][idToState[d.id]] = [];
+            }
+            return colorScale(listing_data[selected_year][idToState[d.id]][0]);
+        });
+    drawLegend(d3.select("#colorLegend"), colorScale)
+
+    function state_added() {
+        selected_state = idToState[this.getAttribute("note")];
+        let state_data = []
+        Object.keys(listing_data).forEach(d => {
+            state_data.push(listing_data[d][selected_state][0])
+        })
+
+        lineGen = d3.line()
+            .x((d, i) => dateScale(Object.keys(listing_data)[i]))
+            .y(d => stateScale(d))
+            .curve(d3.curveMonotoneX);
+
+        chartArea.append("path")
+            .datum(state_data)
+            .attr("class", "line")
+            .attr("fill", "none")
+            .attr("stroke", "black")
+            .attr("opacity", 0.5)
+            .attr("stroke-width", 3.5)
+            .attr("opacity", 0.3)
+            .attr("class", `line ${selected_state}`)
+            .attr("d", lineGen);
+
+        chartArea.append("text")
+            .attr("x", dateScale(2021))
+            .attr("y", stateScale(state_data[state_data.length - 1]) - 20)
+            .attr("text-anchor", "middle")
+            .attr("alignment-baseline", "hanging")
+            .attr("opacity", 0.6)
+            .attr("class", `state_text ${selected_state}`)
+            .attr("id", selected_state)
+            .text(selected_state)
+    }
 
     function mouseEntersPlot() {
         tooltip.style("visibility", "visible")
         let state = d3.select(this);
         let stateID = state.datum().id;
-
-        var mo = topojson.mesh(us, us.objects.states, function(a, b) { return a.id === stateID || b.id === stateID; });
+        let mo = topojson.mesh(us, us.objects.states, function(a, b) {
+            return a.id === stateID || b.id === stateID;
+        });
         mesh.datum(mo).attr("d", path);
 
         txt.text(idToState[stateID]);
@@ -274,34 +311,43 @@ const requestData = async function() {
 
     function mouseLeavesPlot() {
         tooltip.style("visibility", "hidden");
+        let state = d3.select(this);
         mesh.attr("d", "");
     }
-    const legendMargins = {"top": 10, "right": 10, "bottom": 50, "left": 50};
+    //  Credit to Prof. Rz 
     function drawLegend(legend, legendColorScale) {
-        //const legend = d3.select("#colorLegend");
+        const legendMargins = {
+            "top": 35,
+            "right": 0,
+            "bottom": 50,
+            "left": 0
+        };
         const legendWidth = legend.attr("width");
         const legendHeight = legend.attr("height");
         const legendMinMax = d3.extent(legendColorScale.domain());
         const barHeight = 30;
         const pixelScale = d3.scaleLinear().domain([0, legendWidth - (legendWidth / 5)]).range([legendMinMax[0] - 1, legendMinMax[1] + 1]); // In this case the "data" are pixels, and we get numbers to use in colorScale
-        const barScale = d3.scaleLinear().domain([legendMinMax[0] - 1, legendMinMax[1] + 1]).range([0, legendWidth]);
+        const barScale = d3.scaleLinear().domain([legendMinMax[0] - 1, legendMinMax[1] + 1]).range([20, legendWidth - 20]);
         const barAxis = d3.axisBottom(barScale);
         if (legendColorScale.hasOwnProperty('quantiles')) {
-            barAxis.tickValues(legendColorScale.quantiles().concat(legendMinMax)).tickSize(10).tickFormat(function(d, i) {
+            barAxis.tickValues(legendColorScale.quantiles().concat(legendMinMax)).tickFormat(function(d, i) {
                 return "$" + Math.round(d) + "/sq ft";
             });
         }
         legend.append("g")
             .attr("class", "colorbar axis")
-            .attr("transform", "translate(" + (20) + "," + (barHeight + 5) + ")")
+            .attr("transform", "translate(" + (legendMargins.left) + "," + legendMargins.top + ")")
             .call(barAxis);
-        let bar = legend.append("g").attr("transform", "translate(" + (20) + "," + (0) + ")")
-        for (let i = 0; i < legendWidth; i = (i + legendWidth / 5)) {
-            bar.append("rect").attr("x", i).attr("y", 0).attr("width", legendWidth / 5).attr("height", barHeight).style("fill", legendColorScale(pixelScale(i)));
+        let bar = legend.append("g").attr("transform", "translate(" + (legendMargins.left + 20) + "," + (barHeight + legendMargins.top - 65) + ")")
+        let barWidth = legendWidth - 40;
+        for (let i = 0; i < barWidth; i = (i + barWidth / 5)) {
+            bar.append("rect")
+                .attr("x", i)
+                .attr("y", 0)
+                .attr("width", barWidth / 5)
+                .attr("height", barHeight)
+                .style("fill", legendColorScale(pixelScale(i)));
         }
-        svg.append("g").attr("class", "color_legend") 
-        .attr("transform","translate("+margins.left+","+(chartHeight+margins.top+10)+")")
-        .call(barAxis);
     }
 }
 requestData();
