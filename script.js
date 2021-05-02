@@ -152,6 +152,7 @@ const requestData = async function() {
 
     // Interaction on state
     d3.selectAll(".state").on("click", state_added);
+
     // Interaction on clear
     d3.select("#clear_button").on("click", function() {
         d3.selectAll(".line_text").remove();
@@ -254,9 +255,6 @@ const requestData = async function() {
     drawLegend(d3.select("#colorLegend"), colorScale)
 
     function state_added() {
-        let newLine = chartArea.append("g")
-            .attr("class", "line_text")
-
         selected_state = idToState[this.getAttribute("note")];
         let state_data = []
         Object.keys(listing_data).forEach(d => {
@@ -268,49 +266,61 @@ const requestData = async function() {
             .y(d => stateScale(d))
             .curve(d3.curveMonotoneX);
 
+        let newLine = chartArea.append("g")
+            .attr("opacity", 0.5)
+            .attr("class", "line_text")
+            .attr("id", selected_state)
+
         newLine.append("path")
             .datum(state_data)
             .attr("fill", "none")
             .attr("stroke", "black")
-            .attr("opacity", 0.5)
             .attr("stroke-width", 3)
             // .attr("class", `line ${selected_state}`)
             .attr("class", "added_line")
+            .attr("id", selected_state)
             .attr("d", lineGen);
 
         newLine.append("text")
-            .attr("x", dateScale(2021))
+            .attr("x", dateScale(2021) + 20)
             .attr("y", stateScale(state_data[state_data.length - 1]) - 20)
             .attr("text-anchor", "middle")
             .attr("alignment-baseline", "hanging")
             .attr("stroke", "black")
-            .attr("opacity", 0.5)
             .attr("stroke-width", 3)
             // .attr("class", `state_text ${selected_state}`)
             .attr("class", "added_line")
             .attr("id", selected_state)
             .text(selected_state)
 
-        d3.selectAll(".line_text").on("mouseenter", mouseEnterState).attr("cursor", "pointer");
+        d3.selectAll(".line_text").on("mouseenter", mouseEnterState)
+            .attr("cursor", "pointer")
         d3.selectAll(".line_text").on("mouseout", mouseLeavesState);
-
 
     }
 
+
     function mouseEnterState() {
         let select_line = d3.select(this);
-        select_line.attr("stroke", "black")
-            .attr("opacity", 0.8)
-            .attr("stroke-width", 5)
+        d3.selectAll(".line_text").each(function() {
+            line = d3.select(this)
+            if (line.attr("id") === select_line.attr("id")) {
+                line.attr("stroke", "black")
+                    .attr("opacity", 0.8)
+                    .attr("stroke-width", 5)
+            } else {
+                line.attr("stroke", "black")
+                    .attr("opacity", 0.1)
+                    .attr("stroke-width", 5)
+            }
+        })
 
     }
 
     function mouseLeavesState() {
-        let select_line = d3.select(this);
-        select_line.attr("fill", "none")
+        d3.selectAll(".line_text")
             .attr("opacity", 0.5)
             .attr("stroke-width", 3)
-
     }
 
     function mouseEntersPlot() {
